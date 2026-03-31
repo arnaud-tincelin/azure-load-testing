@@ -1,0 +1,21 @@
+## .NET Build Artifacts
+bin/
+obj/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+
+## macOS
+.DS_Store
+
+## Azure Developer CLI
+.azure/
+
+## Test Results
+albums-api/tests/load/results/
+
+## JMeter local results
+*.jtl
+jmeter.log

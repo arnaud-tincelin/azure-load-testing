@@ -1,0 +1,8 @@
+name: marketplace-api
+metadata:
+  template: marketplace-api@0.0.1-beta
+services:
+  albums-api:
+    project: ./albums-api
+    language: dotnet
+    host: containerapp
