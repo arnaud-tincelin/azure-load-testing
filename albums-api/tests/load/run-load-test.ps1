@@ -1,26 +1,20 @@
 <#
 .SYNOPSIS
-    Executes the Albums API load test on Azure Load Testing and retrieves results.
+    Runs the Albums API load test and retrieves results.
 
 .DESCRIPTION
-    Triggers the load test run, waits for completion, and downloads the results.
-    Requires the Azure CLI to be installed and logged in.
+    Starts a test run for the previously deployed load test, polls for completion,
+    and displays the results summary.
 
 .PARAMETER ResourceGroup
-    The Azure resource group containing the Azure Load Testing resource.
+    The Azure resource group containing the Load Testing resource.
 
 .PARAMETER LoadTestingResourceName
     The name of the Azure Load Testing resource.
 
-.PARAMETER OutputPath
-    Directory where test results will be saved. Default is './results'.
-
-.EXAMPLE
-    ./run-load-test.ps1 `
-        -ResourceGroup "rg-myenv" `
-        -LoadTestingResourceName "lt-abc123"
+.PARAMETER TestId
+    The test ID to run (default: albums-api-load-test).
 #>
-
 param(
     [Parameter(Mandatory = $true)]
     [string]$ResourceGroup,
@@ -28,113 +22,86 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$LoadTestingResourceName,
 
-    [Parameter(Mandatory = $false)]
-    [string]$OutputPath = "./results"
+    [string]$TestId = "albums-api-load-test"
 )
 
 $ErrorActionPreference = "Stop"
+$testRunId = "$TestId-run-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
-Write-Host "🧪 Running Albums API load test..." -ForegroundColor Cyan
-Write-Host "  Resource Group: $ResourceGroup"
-Write-Host "  Load Testing Resource: $LoadTestingResourceName"
+Write-Host "Starting load test run..." -ForegroundColor Cyan
+Write-Host "  Test ID     : $TestId"
+Write-Host "  Test Run ID : $testRunId"
 
-# Verify Azure CLI is logged in
-Write-Host "`n📋 Verifying Azure CLI login..." -ForegroundColor Yellow
-$account = az account show --query "name" -o tsv 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Not logged in to Azure CLI. Run 'az login' first."
-    exit 1
-}
-Write-Host "  Using subscription: $account" -ForegroundColor Green
+# Ensure the az load extension is installed
+az extension add --name load --only-show-errors 2>$null
 
-# Create the output directory
-$OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
-if (-not (Test-Path $OutputPath)) {
-    New-Item -ItemType Directory -Path $OutputPath | Out-Null
-}
-Write-Host "  Results directory: $OutputPath"
-
-# Create a new test run
-Write-Host "`n🚀 Creating test run..." -ForegroundColor Yellow
-$testRunId = "run-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-$startTime = Get-Date
-
+# Start the test run
+Write-Host "`nStarting test run '$testRunId'..." -ForegroundColor Yellow
 az load test-run create `
+    --test-id $TestId `
+    --test-run-id $testRunId `
     --load-test-resource $LoadTestingResourceName `
     --resource-group $ResourceGroup `
-    --test-id "albums-api-load-test" `
-    --test-run-id $testRunId `
-    --display-name "Albums API Load Test - $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+    --display-name "Albums API Load Test - $(Get-Date -Format 'yyyy-MM-dd HH:mm')" `
+    --description "Progressive load test run" `
+    --no-wait
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "❌ Failed to create test run."
-    exit 1
-}
-Write-Host "  Test Run ID: $testRunId" -ForegroundColor Green
+Write-Host "Test run started. Polling for completion..." -ForegroundColor Yellow
 
-# Wait for test completion
-Write-Host "`n⏳ Waiting for test to complete (this may take 15+ minutes)..." -ForegroundColor Yellow
-$checkInterval = 30
-$maxWaitMinutes = 30
-$maxChecks = ($maxWaitMinutes * 60) / $checkInterval
+# Poll for completion
+$maxWaitMinutes = 20
+$pollIntervalSeconds = 30
+$elapsed = 0
 
-for ($i = 0; $i -lt $maxChecks; $i++) {
-    Start-Sleep -Seconds $checkInterval
+do {
+    Start-Sleep -Seconds $pollIntervalSeconds
+    $elapsed += $pollIntervalSeconds
 
     $status = az load test-run show `
+        --test-run-id $testRunId `
         --load-test-resource $LoadTestingResourceName `
         --resource-group $ResourceGroup `
-        --test-run-id $testRunId `
-        --query "status" `
-        -o tsv
+        --query "status" -o tsv 2>$null
 
-    $elapsed = [math]::Round(((Get-Date) - $startTime).TotalMinutes, 1)
-    Write-Host "  Status: $status (elapsed: ${elapsed}min)"
+    $elapsedMin = [math]::Round($elapsed / 60, 1)
+    Write-Host "  [$elapsedMin min] Status: $status"
 
-    if ($status -in @("DONE", "FAILED", "CANCELLED")) {
-        break
-    }
+} while ($status -notin @("DONE", "FAILED", "CANCELLED") -and $elapsed -lt ($maxWaitMinutes * 60))
+
+if ($status -eq "DONE") {
+    Write-Host "`nTest run completed!" -ForegroundColor Green
+} elseif ($status -eq "FAILED") {
+    Write-Host "`nTest run failed!" -ForegroundColor Red
+} elseif ($status -eq "CANCELLED") {
+    Write-Host "`nTest run was cancelled." -ForegroundColor Yellow
+} else {
+    Write-Host "`nTimed out waiting for test run to complete (waited $maxWaitMinutes minutes)." -ForegroundColor Red
+    Write-Host "Check status in the Azure portal."
 }
 
-# Get test results
-Write-Host "`n📊 Retrieving test results..." -ForegroundColor Yellow
-$results = az load test-run show `
+# Show results
+Write-Host "`n--- Test Run Results ---" -ForegroundColor Cyan
+az load test-run metrics list `
+    --test-run-id $testRunId `
     --load-test-resource $LoadTestingResourceName `
     --resource-group $ResourceGroup `
+    --metric-namespace LoadTestRunMetrics `
+    --metric-id VirtualUsers,RequestsPerSecond,ResponseTime,ErrorPercentage `
+    -o table 2>$null
+
+# Download results
+$resultsDir = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "results"
+if (-not (Test-Path $resultsDir)) {
+    New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
+}
+
+Write-Host "`nDownloading detailed results to $resultsDir..." -ForegroundColor Yellow
+az load test-run download-files `
     --test-run-id $testRunId `
-    -o json | ConvertFrom-Json
+    --load-test-resource $LoadTestingResourceName `
+    --resource-group $ResourceGroup `
+    --path $resultsDir `
+    --force 2>$null
 
-$resultsFile = Join-Path $OutputPath "test-results-$testRunId.json"
-$results | ConvertTo-Json -Depth 10 | Out-File $resultsFile
-Write-Host "  Raw results saved to: $resultsFile" -ForegroundColor Green
-
-# Display summary
-Write-Host "`n📈 Test Results Summary" -ForegroundColor Cyan
-Write-Host "  Status: $($results.status)"
-Write-Host "  Duration: $($results.duration) seconds"
-
-if ($results.testResult) {
-    $tr = $results.testResult
-    Write-Host "`n  Performance Metrics:"
-    Write-Host "    Total Requests:   $($tr.totalRequests)"
-    Write-Host "    Failed Requests:  $($tr.errorCount)"
-    Write-Host "    Avg Response:     $($tr.responseTimeAvg)ms"
-    Write-Host "    P95 Response:     $($tr.responseTimeP95)ms"
-    Write-Host "    P99 Response:     $($tr.responseTimeP99)ms"
-    Write-Host "    Avg Throughput:   $($tr.throughput) RPS"
-    Write-Host "    Error Rate:       $($tr.errorPercentage)%"
-}
-
-# Check pass/fail criteria
-$failedCount = $results.passFailCriteria.passFailMetrics.Values | Where-Object { $_.result -eq "failed" } | Measure-Object | Select-Object -ExpandProperty Count
-
-if ($failedCount -gt 0) {
-    Write-Host "`n⚠️  Some pass/fail criteria were not met!" -ForegroundColor Yellow
-    Write-Host "  Check the Azure Portal for detailed results."
-} else {
-    Write-Host "`n✅ All pass/fail criteria met!" -ForegroundColor Green
-}
-
-Write-Host "`n🔗 View in Azure Portal:"
-$resourceId = az load show --name $LoadTestingResourceName --resource-group $ResourceGroup --query 'id' -o tsv
-Write-Host "  https://portal.azure.com/#resource/$resourceId/tests" -ForegroundColor Blue
+Write-Host "`nResults saved to: $resultsDir" -ForegroundColor Green
+Write-Host "Test Run ID: $testRunId"

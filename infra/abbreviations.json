@@ -3,5 +3,6 @@
   "appManagedEnvironments": "cae-",
   "containerRegistryRegistries": "cr",
   "loadTestingLoadTests": "lt",
+  "loadTestServicePlaywrightWorkspaces": "pw",
   "resourcesResourceGroups": "rg-"
 }

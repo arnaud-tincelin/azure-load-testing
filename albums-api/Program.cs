@@ -9,7 +9,11 @@ builder.Services.AddSingleton<CartStore>();
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddCors();
+
 var app = builder.Build();
+
+app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
 app.MapOpenApi();
 

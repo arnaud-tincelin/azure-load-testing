@@ -1,9 +1,20 @@
 name: marketplace-api
 
+hooks:
+  postprovision:
+    shell: sh
+    run: ./infra/hooks/postprovision.sh
+
 services:
   albums-api:
     project: ./albums-api
     language: dotnet
+    host: containerapp
+    docker:
+      remoteBuild: true
+  albums-frontend:
+    project: ./albums-frontend
+    language: js
     host: containerapp
     docker:
       remoteBuild: true

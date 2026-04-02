@@ -3,7 +3,8 @@
   "image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0",
   "features": {
     "ghcr.io/devcontainers/features/azure-cli:latest": {},
-    "ghcr.io/azure/azure-dev/azd:latest": {}
+    "ghcr.io/azure/azure-dev/azd:latest": {},
+    "ghcr.io/devcontainers/features/node:latest": {}
   },
   "customizations": {
     "vscode": {

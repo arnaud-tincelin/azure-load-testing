@@ -1,0 +1,17 @@
+{
+  "name": "albums-api-playwright-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright API tests for the Albums API",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:cloud": "npx playwright test --config=playwright.service.config.ts",
+    "test:report": "npx playwright show-report"
+  },
+  "devDependencies": {
+    "@azure/identity": "^4.6.0",
+    "@azure/playwright": "^1.0.0",
+    "@playwright/test": "^1.50.0",
+    "dotenv": "^16.4.7"
+  }
+}

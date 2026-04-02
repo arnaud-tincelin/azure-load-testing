@@ -1,54 +1,22 @@
 version: v0.1
 testId: albums-api-load-test
 displayName: Albums API Progressive Load Test
-description: >
-  Progressive load test for the Marketplace Albums API.
-  Ramps from 0 to 1000 requests per second across 3 phases:
-  Phase 1 - Warm-up (0-100 RPS, 2 min)
-  Phase 2 - Ramp-up (100-500 RPS, 5 min)
-  Phase 3 - Peak Load (500-1000 RPS, 5 min)
-
+testType: JMX
 testPlan: album-api-load-test.jmx
-
+description: Progressive load test for the Albums API
 engineInstances: 5
-
-configurationFiles: []
-
-zipArtifacts: []
-
-properties:
-  userPropertyFile: ''
-
 env:
-  - name: TARGET_HOST
-    value: $(TARGET_HOST)
-  - name: TARGET_PORT
-    value: $(TARGET_PORT)
+  - name: HOST
+    value: ${SERVICE_ALBUMS_API_ENDPOINT_URL}
+  - name: PORT
+    value: "443"
   - name: PROTOCOL
-    value: $(PROTOCOL)
-
-secrets: []
-
-certificates: []
-
+    value: https
 failureCriteria:
-  - clientMetric: response_time_ms
-    aggregate: p95
-    condition: '>'
-    value: 500
-    action: continue
-  - clientMetric: response_time_ms
-    aggregate: p99
-    condition: '>'
-    value: 1000
-    action: continue
-  - clientMetric: error
-    aggregate: percentage
-    condition: '>'
-    value: 1
-    action: continue
-  - clientMetric: requests_per_sec
-    aggregate: avg
-    condition: <
-    value: 100
-    action: continue
+  - avg(response_time_ms) > 500
+  - percentage(error) > 1
+  - p95(response_time_ms) > 500
+  - p99(response_time_ms) > 1000
+autoStop:
+  errorPercentage: 80
+  timeWindow: 60
