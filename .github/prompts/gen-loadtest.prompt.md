@@ -2,7 +2,7 @@
 agent: Plan
 description: 'Create a smoke test for Azure Load Testing'
 
-tools: [execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, edit, search, web/fetch, 'azure-mcp/*', todo, ms-azure-load-testing.microsoft-testing/create_load_test_script, ms-azure-load-testing.microsoft-testing/select_azure_load_testing_resource, ms-azure-load-testing.microsoft-testing/run_load_test_in_azure, ms-azure-load-testing.microsoft-testing/select_azure_load_test_run, ms-azure-load-testing.microsoft-testing/get_azure_load_test_run_insights]
+tools: [execute/createAndRunTask, execute/runInTerminal, read/problems, read/readFile, edit, search, web/fetch, 'azure-mcp/*', todo, ms-azure-load-testing.microsoft-testing/create_load_test_script, ms-azure-load-testing.microsoft-testing/select_azure_load_testing_resource, ms-azure-load-testing.microsoft-testing/run_load_test_in_azure, ms-azure-load-testing.microsoft-testing/select_azure_load_test_run, ms-azure-load-testing.microsoft-testing/get_azure_load_test_run_insights, azure-mcp/loadtesting]
 model: 'Claude Opus 4.6'
 ---
 
@@ -30,7 +30,7 @@ to 1000 requests per second.
 ## Plan should cover
 
 1. **Set up Azure Load Testing infrastructure** — Verify `azure.yaml` and `infra/` Bicep templates include the Azure Load Testing resource alongside the Container Apps deployment.
-2. **Create JMeter test plan** — Generate `albums-api/tests/load/album-api-load-test.jmx` with thread groups for progressive ramping (0→100→500→1000 RPS), test scenarios covering all `/albums` endpoints (GET, POST, PUT, DELETE), and realistic user behavior patterns.
+2. **Create JMeter test plan** — Generate `tests/load/album-api-load-test.jmx` with thread groups for progressive ramping (0→100→500→1000 RPS), test scenarios covering all `/albums` endpoints (GET, POST, PUT, DELETE), and realistic user behavior patterns.
 3. **Add frontend load scenarios** — Include thread groups that target the frontend URL (`SERVICE_ALBUMS_FRONTEND_ENDPOINT_URL`): load the homepage, browse albums through the nginx proxy, apply filters, open album details, and simulate cart interactions. This validates the nginx reverse-proxy and frontend serving under load alongside the API.
-4. **Configure Azure Load Testing assets** — Create `albums-api/tests/load/load-test.yaml` with test configuration, environment variables (`SERVICE_ALBUMS_API_ENDPOINT_URL`, `SERVICE_ALBUMS_FRONTEND_ENDPOINT_URL`), and success criteria (response time <500ms, error rate <1%, throughput targets).
-5. **Add deployment and execution scripts** — Create PowerShell scripts in `albums-api/tests/load/` for deploying load tests to Azure, executing tests, and retrieving results, plus update `README.md` with load testing documentation.
+4. **Configure Azure Load Testing assets** — Create `tests/load/load-test.yaml` with test configuration, environment variables (`SERVICE_ALBUMS_API_ENDPOINT_URL`, `SERVICE_ALBUMS_FRONTEND_ENDPOINT_URL`), and success criteria (response time <500ms, error rate <1%, throughput targets).
+5. **Add deployment and execution scripts** — Create PowerShell scripts in `tests/load/` for deploying load tests to Azure, executing tests, and retrieving results, plus update `README.md` with load testing documentation.

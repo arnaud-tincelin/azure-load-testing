@@ -72,3 +72,4 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 output SERVICE_ALBUMS_API_ENDPOINT_URL string = albumsApi.outputs.uri
 output SERVICE_ALBUMS_FRONTEND_ENDPOINT_URL string = albumsFrontend.outputs.uri
 output AZURE_LOAD_TESTING_RESOURCE_NAME string = loadTesting.outputs.name
+output AZURE_LOAD_TESTING_RESOURCE_GROUP string = resourceGroup().name

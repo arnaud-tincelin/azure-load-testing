@@ -14,7 +14,7 @@ obj/
 .azure/
 
 ## Test Results
-albums-api/tests/load/results/
+tests/load/results/
 
 ## JMeter local results
 *.jtl

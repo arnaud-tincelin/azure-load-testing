@@ -1,8 +1,10 @@
 {
-  "name": "Azure Load Testing",
+  "name": "Azure App Testing",
   "image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0",
   "features": {
-    "ghcr.io/devcontainers/features/azure-cli:latest": {},
+    "ghcr.io/devcontainers/features/azure-cli:latest": {
+      "extensions": "load"
+    },
     "ghcr.io/azure/azure-dev/azd:latest": {},
     "ghcr.io/devcontainers/features/node:latest": {}
   },
